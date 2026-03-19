@@ -7,7 +7,7 @@ A Tshock plugin that teleports you back to your last death position
 3. Stop and rerun the server.
 
 ## Versions
-Back v1.0.2 (Latest)
+Back v1.0.3 (Latest)
 
 ## Instructions
 ### Commands
