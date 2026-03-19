@@ -41,7 +41,10 @@ namespace Back {
 
             if (MsgID == PacketTypes.PlayerDeathV2)
             {
-                 using (BinaryReader br = new(new MemoryStream(args.Msg.readBuffer, args.Index, args.Length)))
+                if (args.Msg == null)
+                    return;
+
+                using (BinaryReader br = new(new MemoryStream(args.Msg.readBuffer, args.Index, args.Length)))
                 {
                     byte playerID = br.ReadByte();
                     PlayerDeathReason deathReason = PlayerDeathReason.FromReader(br);
@@ -55,10 +58,6 @@ namespace Back {
 
                     var deathPosition = new Vector2(player.position.X, player.position.Y);
                     playerDeathData[player.name] = (deathPosition, "death");
-                    if (player == null)
-                    {
-                        playerDeathData.Remove(player.name);
-                    }
                 }
             }
         }
