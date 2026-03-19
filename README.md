@@ -1,5 +1,5 @@
 # Back
-A Tshock plugin that teleports you back to your last death position
+A TShock plugin that teleports you back to your last death position.
 
 ## How to Install
 1. Download the `.dll` file.
