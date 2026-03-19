@@ -11,8 +11,8 @@
   <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
 </PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="TShock" Version="6.1.0" />
-  </ItemGroup>
+<ItemGroup>
+  <PackageReference Include="TShock" Version="6.1.0" />
+</ItemGroup>
 
 </Project>
