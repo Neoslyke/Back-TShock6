@@ -9,7 +9,7 @@ namespace Back {
     [ApiVersion(2, 1)]
     public class Back : TerrariaPlugin {
         public override string Name => "Back";
-        public override string Author => "Melton";
+        public override string Author => "Neoslyke (fork ofMelton";
         public override Version Version => new Version(1, 0, 2);
         public override string Description => "Teleports you back to the last death you are on";
 
