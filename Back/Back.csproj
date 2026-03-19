@@ -2,9 +2,8 @@
 
   <PropertyGroup>
     <ImplicitUsings>enable</ImplicitUsings>
-    <OutputType>Exe</OutputType>
+    <OutputType>Library</OutputType>
     <TargetFramework>net9.0</TargetFramework>
-		<StartupObject>Program</StartupObject>
   </PropertyGroup>
 
   <ItemGroup>
