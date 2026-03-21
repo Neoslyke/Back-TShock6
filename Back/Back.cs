@@ -5,41 +5,55 @@ using Terraria.DataStructures;
 using TerrariaApi.Server;
 using TShockAPI;
 
-namespace Back {
+namespace Back
+{
     [ApiVersion(2, 1)]
-    public class Back : TerrariaPlugin {
+    public class Back : TerrariaPlugin
+    {
         public override string Name => "Back";
-        public override string Author => "Neoslyke, Melton)";
-        public override Version Version => new Version(2, 1, 0);
-        public override string Description => "Teleports you back to the last death you are on";
+        public override string Author => "Neoslyke, Melton";
+        public override Version Version => new Version(2, 2, 0);
+        public override string Description => "Teleports you back to the last death location";
 
-        Dictionary<string, (Vector2 position, string reason)> playerDeathData = new Dictionary<string, (Vector2, string)>();
+        private readonly Dictionary<string, Vector2> playerDeathData = new();
+        private readonly HashSet<string> autoBackEnabled = new();
 
         public Back(Main game) : base(game)
-        {}
+        { }
 
         public override void Initialize()
         {
             Commands.ChatCommands.Add(new Command("back.back", BackCommand, "back"));
+            Commands.ChatCommands.Add(new Command("back.auto", BackAutoCommand, "backauto"));
             ServerApi.Hooks.NetGetData.Register(this, OnNetGetData);
+            ServerApi.Hooks.ServerLeave.Register(this, OnServerLeave);
         }
 
         protected override void Dispose(bool disposing)
         {
             if (disposing)
             {
-                Commands.ChatCommands.Remove(new Command("back.back", BackCommand, "back"));
+                Commands.ChatCommands.RemoveAll(c => c.CommandDelegate == BackCommand || c.CommandDelegate == BackAutoCommand);
                 ServerApi.Hooks.NetGetData.Deregister(this, OnNetGetData);
+                ServerApi.Hooks.ServerLeave.Deregister(this, OnServerLeave);
             }
 
             base.Dispose(disposing);
         }
 
+        private void OnServerLeave(LeaveEventArgs args)
+        {
+            var player = TShock.Players[args.Who];
+            if (player != null && !string.IsNullOrEmpty(player.Name))
+            {
+                autoBackEnabled.Remove(player.Name);
+                playerDeathData.Remove(player.Name);
+            }
+        }
+
         private void OnNetGetData(GetDataEventArgs args)
         {
-            PacketTypes MsgID = args.MsgID;
-
-            if (MsgID == PacketTypes.PlayerDeathV2)
+            if (args.MsgID == PacketTypes.PlayerSpawn)
             {
                 if (args.Msg == null)
                     return;
@@ -47,17 +61,33 @@ namespace Back {
                 using (BinaryReader br = new(new MemoryStream(args.Msg.readBuffer, args.Index, args.Length)))
                 {
                     byte playerID = br.ReadByte();
-                    PlayerDeathReason deathReason = PlayerDeathReason.FromReader(br);
-                    br.ReadInt16();
-                    br.ReadByte();
-                    br.ReadByte();
-
                     var player = Main.player[playerID];
+                    var tsPlayer = TShock.Players[playerID];
+
+                    if (player == null || tsPlayer == null || string.IsNullOrEmpty(player.name))
+                        return;
+
+                    if (autoBackEnabled.Contains(player.name) && playerDeathData.TryGetValue(player.name, out var deathPosition))
+                    {
+                        tsPlayer.Teleport(deathPosition.X, deathPosition.Y);
+                        tsPlayer.SendSuccessMessage("Auto-teleported back to your death location.");
+                    }
+                }
+            }
+            else if (args.MsgID == PacketTypes.PlayerDeathV2)
+            {
+                if (args.Msg == null)
+                    return;
+
+                using (BinaryReader br = new(new MemoryStream(args.Msg.readBuffer, args.Index, args.Length)))
+                {
+                    byte playerID = br.ReadByte();
+                    var player = Main.player[playerID];
+
                     if (player == null || string.IsNullOrEmpty(player.name))
                         return;
 
-                    var deathPosition = new Vector2(player.position.X, player.position.Y);
-                    playerDeathData[player.name] = (deathPosition, "death");
+                    playerDeathData[player.name] = new Vector2(player.position.X, player.position.Y);
                 }
             }
         }
@@ -71,15 +101,32 @@ namespace Back {
                 player.SendErrorMessage("You can't use this command while dead.");
                 return;
             }
-            
-            if (playerDeathData.TryGetValue(player.Name, out var deathData))
+
+            if (playerDeathData.TryGetValue(player.Name, out var deathPosition))
             {
-                player.Teleport(deathData.position.X, deathData.position.Y);
-                player.SendSuccessMessage($"You have been teleported back to your death location.");
+                player.Teleport(deathPosition.X, deathPosition.Y);
+                player.SendSuccessMessage("You have been teleported back to your death location.");
             }
             else
             {
                 player.SendErrorMessage("No death location found.");
+            }
+        }
+
+        private void BackAutoCommand(CommandArgs args)
+        {
+            var player = args.Player;
+            if (player == null || !player.Active || !player.RealPlayer) return;
+
+            if (autoBackEnabled.Contains(player.Name))
+            {
+                autoBackEnabled.Remove(player.Name);
+                player.SendInfoMessage("Auto-back disabled.");
+            }
+            else
+            {
+                autoBackEnabled.Add(player.Name);
+                player.SendInfoMessage("Auto-back enabled.");
             }
         }
     }
