@@ -17,6 +17,7 @@ namespace Back
 
         private readonly Dictionary<string, Vector2> playerDeathData = new();
         private readonly HashSet<string> autoBackEnabled = new();
+        private readonly HashSet<string> pendingTeleport = new();
 
         public Back(Main game) : base(game)
         { }
@@ -27,6 +28,7 @@ namespace Back
             Commands.ChatCommands.Add(new Command("back.auto", BackAutoCommand, "backauto"));
             ServerApi.Hooks.NetGetData.Register(this, OnNetGetData);
             ServerApi.Hooks.ServerLeave.Register(this, OnServerLeave);
+            ServerApi.Hooks.GameUpdate.Register(this, OnGameUpdate);
         }
 
         protected override void Dispose(bool disposing)
@@ -36,6 +38,7 @@ namespace Back
                 Commands.ChatCommands.RemoveAll(c => c.CommandDelegate == BackCommand || c.CommandDelegate == BackAutoCommand);
                 ServerApi.Hooks.NetGetData.Deregister(this, OnNetGetData);
                 ServerApi.Hooks.ServerLeave.Deregister(this, OnServerLeave);
+                ServerApi.Hooks.GameUpdate.Deregister(this, OnGameUpdate);
             }
 
             base.Dispose(disposing);
@@ -48,6 +51,24 @@ namespace Back
             {
                 autoBackEnabled.Remove(player.Name);
                 playerDeathData.Remove(player.Name);
+                pendingTeleport.Remove(player.Name);
+            }
+        }
+
+        private void OnGameUpdate(EventArgs args)
+        {
+            foreach (var playerName in pendingTeleport.ToList())
+            {
+                var tsPlayer = TShock.Players.FirstOrDefault(p => p != null && p.Name == playerName);
+                if (tsPlayer != null && tsPlayer.Active && !tsPlayer.Dead)
+                {
+                    if (playerDeathData.TryGetValue(playerName, out var deathPosition))
+                    {
+                        tsPlayer.Teleport(deathPosition.X, deathPosition.Y);
+                        tsPlayer.SendSuccessMessage("I've come to bargain!");
+                    }
+                    pendingTeleport.Remove(playerName);
+                }
             }
         }
 
@@ -62,15 +83,13 @@ namespace Back
                 {
                     byte playerID = br.ReadByte();
                     var player = Main.player[playerID];
-                    var tsPlayer = TShock.Players[playerID];
 
-                    if (player == null || tsPlayer == null || string.IsNullOrEmpty(player.name))
+                    if (player == null || string.IsNullOrEmpty(player.name))
                         return;
 
-                    if (autoBackEnabled.Contains(player.name) && playerDeathData.TryGetValue(player.name, out var deathPosition))
+                    if (autoBackEnabled.Contains(player.name) && playerDeathData.ContainsKey(player.name))
                     {
-                        tsPlayer.Teleport(deathPosition.X, deathPosition.Y);
-                        tsPlayer.SendSuccessMessage("Auto-teleported back to your death location.");
+                        pendingTeleport.Add(player.name);
                     }
                 }
             }
