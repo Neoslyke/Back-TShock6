@@ -12,7 +12,7 @@ namespace Back
     {
         public override string Name => "Back";
         public override string Author => "Neoslyke, Melton";
-        public override Version Version => new Version(2, 2, 0);
+        public override Version Version => new Version(2, 1, 0);
         public override string Description => "Teleports you back to the last death location";
 
         private readonly Dictionary<string, Vector2> playerDeathData = new();
