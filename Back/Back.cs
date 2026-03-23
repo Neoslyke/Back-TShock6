@@ -24,7 +24,7 @@ namespace Back
 
         public override void Initialize()
         {
-            Commands.ChatCommands.Add(new Command("back.back", BackCommand, "back"));
+            Commands.ChatCommands.Add(new Command("back.use", BackCommand, "back"));
             Commands.ChatCommands.Add(new Command("back.auto", BackAutoCommand, "backauto"));
             ServerApi.Hooks.NetGetData.Register(this, OnNetGetData);
             ServerApi.Hooks.ServerLeave.Register(this, OnServerLeave);

@@ -14,4 +14,5 @@ Back v1.0.3 (Latest)
 `/back`
 
 ### Permissions
-`back.back`
+`back.use`
+`back.auto`
